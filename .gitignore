@@ -104,3 +104,11 @@ venv.bak/
 .mypy_cache/
 
 .vscode.ws.code-workspace
+tmp/grids/metafile_2f7a4fad-bcd3-44cc-a3ec-e10538540d6f
+tmp/grids/metafile_7f0abfb2-7d3e-4206-bbda-137912bb2955
+tmp/grids/metafile_060d832f-87e1-4e33-87d4-fc03d11b0683
+tmp/grids/metafile_a025aa81-250a-4e55-a0d0-74ba360bd527
+tmp/grids/metafile_b5bfaffa-a136-4164-9c7c-b094172dc291
+tmp/grids/metafile_c8b4842d-4987-4ca4-8b70-fd427d83c2b8
+tmp/grids/metafile_e4bb5f56-b7c1-45b3-938b-c9a2112aba0f
+tmp/out/stats.csv

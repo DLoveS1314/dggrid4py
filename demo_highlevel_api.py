@@ -80,7 +80,6 @@ def highlevel_grid_gen_and_transform(dggrid_instance):
 
 
 def highlevel_grid_stats(dggrid_instance):
-
     # generate grid_stats for all predefined DGGS types (except CUSTOM, PLANETGRID will not complete either at higher resolutions)
     for gridtype in filter(lambda x: x.startswith('CUSTOM') == False, dggs_types):
 
@@ -92,17 +91,19 @@ def highlevel_grid_stats(dggrid_instance):
         try:
             print(f"{gridtype} - {15}")
             df = dggrid_instance.grid_stats_table(dggs_type=gridtype, resolution=15, mixed_aperture_level=mixed_aperture_level, )
-            df.to_csv(f"/tmp/grids/{gridtype}_{15}_stats.csv", index=False)
+            df.to_csv( './tmp/out/stats.csv', index=False)
         except ValueError as ex:
             print(ex)
             pass
 
 
 if __name__ == '__main__':
+    
+    executable = '/home/dls/data/openmmlab/DGGRID/build/src/apps/dggrid/dggrid'
 
-    dggrid = DGGRIDv7(executable='../src/apps/dggrid/dggrid', working_dir='/tmp/grids', capture_logs=False, silent=False)
+    dggrid = DGGRIDv7(executable= executable, working_dir='./tmp/grids', capture_logs=False, silent=False)
 
-    highlevel_grid_gen_and_transform(dggrid)
+    # highlevel_grid_gen_and_transform(dggrid)
 
     highlevel_grid_stats(dggrid)
 
