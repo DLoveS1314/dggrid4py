@@ -258,7 +258,7 @@ def dg_grid_meta(dggs):
         if not dggs.get_par(res_opt, None) is None:
             opt_val = dggs.get_par(res_opt, None)
             if not opt_val is None:
-                metafile.append(f"{dggrid_par_lookup[res_opt]} {opt_val}")
+                metafile.append(f"{dggridy_par_lookup[res_opt]} {opt_val}")
 
     return metafile
 
