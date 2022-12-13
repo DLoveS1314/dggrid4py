@@ -125,7 +125,7 @@ def dgselect(dggs_type, **kwargs):
 
     if dggs_type in dggs_types:
         if dggs_type in ['SUPERFUND', 'PLANETRISK']:
-            # keep it simple, only that spec
+            # keep it simple, only that spec PLANETRISK是一种六边形格网类型
             dggs = Dggs(dggs_type=dggs_type,
                         metric = True,
                         show_info = True)
@@ -231,7 +231,7 @@ helper function to generate the metafile from a DGGS config
 """
 def dg_grid_meta(dggs):
 
-    dggrid_par_lookup = {
+    dggridy_par_lookup = {
         'res' : 'dggs_res_spec',
         'precision': 'precision',
         'area' : 'dggs_res_specify_area',
@@ -468,7 +468,7 @@ class DGGRIDv7(object):
             self.working_dir = working_dir
 
 
-    def is_runnable(self):
+    def is_runnable(self):##没有使用
         is_runnable = 0
 
         takes = []
@@ -552,8 +552,10 @@ class DGGRIDv7(object):
     """
     def dgapi_grid_gen(self, dggs, subset_conf, output_conf):
         """
+        格网生成操作
         Grid Generation. Generate the cells of a DGG, either covering the complete surface of the earth or covering only a
         specific set of regions on the earth’s surface.
+        返回值是 metafile 调用生成的metafile 和dggrid可执行文件来生成输出结果（利用run） 再读取到python中
         """
         dggrid_operation = 'GENERATE_GRID'
         metafile = []
@@ -567,7 +569,7 @@ class DGGRIDv7(object):
         # clip_subset_types
         if subset_conf['clip_subset_type'] == 'WHOLE_EARTH':
             metafile.append("clip_subset_type " + subset_conf['clip_subset_type'])
-        elif subset_conf['clip_subset_type'] in [ 'SHAPEFILE' , 'AIGEN', 'GDAL'] and not subset_conf['clip_region_files'] is None:
+        elif subset_conf['clip_subset_type'] in [ 'SHAPEFILE' , 'AIGEN', 'GDAL'] and not subset_conf['clip_region_files'] is None:#局部分割需要文件类型和文件路径
             metafile.append("clip_subset_type " + subset_conf['clip_subset_type'])
             metafile.append("clip_region_files " + subset_conf['clip_region_files'])
         elif subset_conf['clip_subset_type'] in [ 'SEQNUMS'] and not subset_conf['clip_region_files'] is None:
@@ -640,6 +642,7 @@ class DGGRIDv7(object):
 
     def dgapi_grid_transform(self, dggs, subset_conf, output_conf):
         """
+        地址转换
         Address Conversion. Transform a file of locations from one address form (such as longitude/latitude) to another (such as DGG cell indexes).
         """
         dggrid_operation = 'TRANSFORM_POINTS'
@@ -909,11 +912,13 @@ class DGGRIDv7(object):
 
     def grid_cell_polygons_from_cellids(self, cell_id_list, dggs_type, resolution, mixed_aperture_level=None):
         """
+        
+         根据编码（只识别seqnum）生成相应的多边形 输入只能为空或者seqnum 输出的是geopanda能读取的格式 所以输出指定为了gdal 但是gdal好像还有点问题
         generates a DGGS grid and returns all the cells as Geodataframe with geometry type Polygon
             a) if cell_id_list is empty/None: grid cells for the WHOLE_EARTH
             b) if cell_id_list is a list/numpy array, takes this list as seqnums ids for subsetting
         """
-        tmp_id = uuid.uuid4()
+        tmp_id = uuid.uuid4()#创建文件的唯一标识 
         tmp_dir = self.working_dir
         dggs = dgselect(dggs_type = dggs_type, res= resolution, mixed_aperture_level=mixed_aperture_level)
 
@@ -923,13 +928,14 @@ class DGGRIDv7(object):
         if not cell_id_list is None and len(cell_id_list) > 0:
 
             seq_df = pd.DataFrame({ 'seqs': cell_id_list})
+            # 'seqs' 如果是局部生成 就把seqnum 输出到 txt dggrid 需要读取seqnum的文件 不能读取nunmpy resolve() 把路径规范化 转化为绝对路径
             seq_df.to_csv( str( (Path(tmp_dir) / f"temp_clip_{tmp_id}.txt").resolve()) , header=False, index=False, columns=['seqs'], sep=' ')
 
             subset_conf.update({
                 'clip_subset_type': 'SEQNUMS',
                 'clip_region_files': str( (Path(tmp_dir) / f"temp_clip_{tmp_id}.txt").resolve()),
                 })
-
+        #cell_output_file_name 指定输出路径
         output_conf = {
             'cell_output_type': 'GDAL',
             'cell_output_gdal_format' : self.tmp_geo_out['driver'],
@@ -937,7 +943,7 @@ class DGGRIDv7(object):
             }
 
         dggs_ops = self.dgapi_grid_gen(dggs, subset_conf, output_conf )
-
+        # 连接路径 路径可以用/运算符或joinpath()方法连接。
         gdf = gpd.read_file( Path(tmp_dir) / f"temp_{dggs_type}_{resolution}_out_{tmp_id}.{self.tmp_geo_out['ext']}", driver=self.tmp_geo_out['driver'] )
 
         if not cell_id_list is None and len(cell_id_list) > 0 and not seq_df is None:
@@ -962,6 +968,7 @@ class DGGRIDv7(object):
 
     def grid_cellids_for_extent(self, dggs_type, resolution, mixed_aperture_level=None, clip_geom=None):
         """
+        根据输入的文件（shape） 确定生成的格网 一般这个应该是面数据
         generates a DGGS grid and returns all the cellids as a pandas dataframe
             a) if clip_geom is empty/None: grid cell ids/seqnms for the WHOLE_EARTH
             b) if clip_geom is a shapely shape geometry, takes this as a clip area
