@@ -460,6 +460,7 @@ class DGGRIDv7(object):
         self.silent=silent
         self.last_run_succesful = False
         self.last_run_logs = ''
+        # 默认为GeoJson 在实验的时候 使用GDAL的GeoJson生成时错误的
         self.tmp_geo_out = get_geo_out(legacy=tmp_geo_out_legacy)
 
         if working_dir is None:
@@ -507,7 +508,7 @@ class DGGRIDv7(object):
             with open('metafile_' + str(tmp_id), 'w', encoding='utf-8') as metafile:
                 for line in dggs_meta_ops:
                     metafile.write(line + '\n')
-
+            metafile.close()
             logs = []
             o = subprocess.Popen([os.path.join(self.working_dir, self.executable), 'metafile_' + str(tmp_id)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -523,7 +524,8 @@ class DGGRIDv7(object):
             if o.returncode == 0:
                 self.last_run_succesful = True
                 try:
-                    os.remove( 'metafile_' + str(tmp_id) )
+                    pass
+                    # os.remove( 'metafile_' + str(tmp_id) )
                 except Exception:
                     pass
             else:
@@ -576,7 +578,7 @@ class DGGRIDv7(object):
             if not dggs.dggs_type in ['ISEA7H', 'FULLER7H', 'PLANETRISK']:
                 metafile.append("clip_subset_type " + subset_conf['clip_subset_type'])
                 metafile.append("clip_region_files " + subset_conf['clip_region_files'])
-            else:
+            else: #['ISEA7H', 'FULLER7H', 'PLANETRISK'] 这三种类型是 SEQUENCE
                 # if dggs_aperture_type would be SEQUENCE
                 # have to reset to WHOLE_EARTH and clip based on
                 # output_first_seqnum and output_last_seqnum
@@ -930,11 +932,12 @@ class DGGRIDv7(object):
             seq_df = pd.DataFrame({ 'seqs': cell_id_list})
             # 'seqs' 如果是局部生成 就把seqnum 输出到 txt dggrid 需要读取seqnum的文件 不能读取nunmpy resolve() 把路径规范化 转化为绝对路径
             seq_df.to_csv( str( (Path(tmp_dir) / f"temp_clip_{tmp_id}.txt").resolve()) , header=False, index=False, columns=['seqs'], sep=' ')
-
+            print('cell_id_list in')
             subset_conf.update({
                 'clip_subset_type': 'SEQNUMS',
                 'clip_region_files': str( (Path(tmp_dir) / f"temp_clip_{tmp_id}.txt").resolve()),
                 })
+            print(subset_conf)
         #cell_output_file_name 指定输出路径
         output_conf = {
             'cell_output_type': 'GDAL',
@@ -947,8 +950,10 @@ class DGGRIDv7(object):
         gdf = gpd.read_file( Path(tmp_dir) / f"temp_{dggs_type}_{resolution}_out_{tmp_id}.{self.tmp_geo_out['ext']}", driver=self.tmp_geo_out['driver'] )
 
         if not cell_id_list is None and len(cell_id_list) > 0 and not seq_df is None:
+            #为什么要join name代表的已经是seqs了 #主要是因为dggs_aperture_type是sequence时 无法进行指定seqnum进行分割的 程序设定 原因不明 因此
+            # 统一根据提供的seqnum进行合并
             # we have to adjust the columns formats for the IDs/Seqnums/Name field to ensure they are comparable for the join
-            # as they are all cell IDs they should all be long integers
+            # as they are all cell IDs they should all be long integers 利用name (cellid)
             seq_df['cell_exists'] = True
             seq_df['seqs'] = seq_df['seqs'].astype(np.int64)
             seq_df.set_index('seqs', inplace=True)
@@ -980,7 +985,7 @@ class DGGRIDv7(object):
         subset_conf = { 'update_frequency': 100000, 'clip_subset_type': 'WHOLE_EARTH' }
 
         if not clip_geom is None and clip_geom.area > 0:
-
+            #把由shapely生成的矢量范围 转为带地理坐标的矢量文件
             clip_gdf = gpd.GeoDataFrame(pd.DataFrame({'id' : [1], 'geometry': [clip_geom]}), geometry='geometry', crs=from_epsg(4326))
             clip_gdf.to_file(Path(tmp_dir) / f"temp_clip_{tmp_id}.{self.tmp_geo_out['ext']}", driver=self.tmp_geo_out['driver'] )
 
